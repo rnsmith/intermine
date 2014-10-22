@@ -133,6 +133,7 @@ public abstract class DirectDataLoaderTask extends Task
 
             getIntegrationWriter().commitTransaction();
             getIntegrationWriter().close();
+            getDirectDataLoader().close();
         } catch (ObjectStoreException e) {
             throw new BuildException(e);
         }
