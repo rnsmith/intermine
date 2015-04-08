@@ -105,6 +105,16 @@ public abstract class IntegrationWriterAbstractImpl implements IntegrationWriter
     }
 
     /**
+     * Get the equivalent object fetcher.
+     *
+     * @returns the equivalent object fetcher
+     */
+    public HintingFetcher getEof() {
+        return this.eof;
+    }
+
+
+    /**
      * {@inheritDoc}
      */
     public void setIgnoreDuplicates(boolean ignoreDuplicates) {

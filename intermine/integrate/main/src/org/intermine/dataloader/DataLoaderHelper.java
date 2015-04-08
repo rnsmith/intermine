@@ -322,12 +322,25 @@ public final class DataLoaderHelper
                 }
 
                 if ((refObj.getId() != null) && (idMap.get(refObj.getId()) != null)) {
+                    LOG.info("Previously loaded refObj " + cld.getName() + "." + fd.getName()
+                            + ": " + refObj.getId());
+                    LOG.info("idMap: " + idMap);
                     // We have previously loaded the object in this reference.
                     continue;
                 }
 
                 if (refObj instanceof ProxyReference) {
-                    refObj = ((ProxyReference) refObj).getObject();
+                    try {
+                        LOG.info("refObj was a ProxyReference " + cld.getName() + "." + fd.getName()
+                                + ": " + refObj.getId());
+                        LOG.info("idMap: " + idMap);
+                        refObj = ((ProxyReference) refObj).getObject();
+                    } catch (NullPointerException e) {
+                        LOG.info("Error with ProxyReference:"  + cld.getName() + "." + fd.getName()
+                                + ": " + refObj.getId());
+                        throw e;
+                    }
+
                 }
 
                 boolean foundNonNullKey = false;

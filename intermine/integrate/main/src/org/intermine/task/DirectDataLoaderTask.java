@@ -10,13 +10,21 @@ package org.intermine.task;
  *
  */
 
-import org.intermine.dataloader.DirectDataLoader;
-import org.intermine.dataloader.IntegrationWriter;
-import org.intermine.dataloader.IntegrationWriterFactory;
-import org.intermine.objectstore.ObjectStoreException;
+import java.util.Properties;
 
+import org.apache.log4j.Logger;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Task;
+import org.intermine.dataloader.BatchingFetcher;
+import org.intermine.dataloader.DirectDataLoader;
+import org.intermine.dataloader.IntegrationWriter;
+import org.intermine.dataloader.IntegrationWriterAbstractImpl;
+import org.intermine.dataloader.IntegrationWriterDataTrackingImpl;
+import org.intermine.dataloader.IntegrationWriterFactory;
+import org.intermine.dataloader.ParallelBatchingFetcher;
+import org.intermine.dataloader.Source;
+import org.intermine.objectstore.ObjectStoreException;
+import org.intermine.util.PropertiesUtil;
 
 /**
  * This task uses a DirectDataLoader to create objects and store them directly into an ObjectStore
@@ -33,6 +41,8 @@ public abstract class DirectDataLoaderTask extends Task
     private boolean ignoreDuplicates = false;
     private DirectDataLoader directDataLoader;
     private IntegrationWriter iw;
+
+    private static final Logger LOG = Logger.getLogger(DirectDataLoaderTask.class);
 
     /**
      * Set the IntegrationWriter.
@@ -83,6 +93,40 @@ public abstract class DirectDataLoaderTask extends Task
                                            + "getting IntegrationWriter");
             } else {
                 iw = IntegrationWriterFactory.getIntegrationWriter(integrationWriterAlias);
+
+                Source source = iw.getMainSource(sourceName, sourceType);
+                if (iw instanceof IntegrationWriterDataTrackingImpl) {
+                    System.out.println("Was an IntegrationWriterDataTrackinImpl!");
+                    Properties props = PropertiesUtil.getPropertiesStartingWith(
+                            "equivalentObjectFetcher");
+                    if (!("false".equals(props.getProperty("equivalentObjectFetcher.useParallel")))) {
+                        LOG.info("Using ParallelBatchingFetcher - set the property "
+                                + "\"equivalentObjectFetcher.useParallel\" to false to use the standard"
+                                + " BatchingFetcher");
+                        ParallelBatchingFetcher eof =
+                            new ParallelBatchingFetcher(((IntegrationWriterAbstractImpl)
+                                    getIntegrationWriter()).getBaseEof(),
+                                ((IntegrationWriterDataTrackingImpl) getIntegrationWriter())
+                                .getDataTracker(), source);
+                        ((IntegrationWriterAbstractImpl) getIntegrationWriter()).setEof(eof);
+                        //os = eof.getNoseyObjectStore(os);
+                    } else {
+                        LOG.info("Using BatchingFetcher - set the property "
+                                + "\"equivalentObjectFetcher.useParallel\" to true to use the "
+                                + "ParallelBatchingFetcher");
+                        BatchingFetcher eof =
+                            new BatchingFetcher(((IntegrationWriterAbstractImpl)
+                                    getIntegrationWriter()).getBaseEof(),
+                                ((IntegrationWriterDataTrackingImpl) getIntegrationWriter())
+                                .getDataTracker(), source);
+                        ((IntegrationWriterAbstractImpl) getIntegrationWriter()).setEof(eof);
+                        //os = eof.getNoseyObjectStore(os);
+                    }
+                } else {
+                    System.out.println("Not an IntegrationWriterDataTrackingImpl, was:"
+                            + iw.getClass());
+                }
+
             }
         }
         return iw;
@@ -130,10 +174,10 @@ public abstract class DirectDataLoaderTask extends Task
             getIntegrationWriter().setIgnoreDuplicates(ignoreDuplicates);
 
             process();
+            directDataLoader.close();
 
             getIntegrationWriter().commitTransaction();
             getIntegrationWriter().close();
-            directDataLoader.close();
         } catch (ObjectStoreException e) {
             throw new BuildException(e);
         }

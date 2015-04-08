@@ -7,8 +7,8 @@
 
   <sources>
     <source name="ensembl-snp" type="ensembl-snp" dump="true">
-     <property name="src.data.dir" location="/SAN_humanmine/data/variation/ensembl/current" />
-      <property name="ensembl-snp.includes" value="Homo_sapiens_incl_consequences.gvf" />
+     <property name="src.data.dir" location="/data/ensembl-snp/small" />
+      <property name="ensembl-snp.includes" value="Homo_sapiens_incl_consequences.gff" />
     </source>
     <source name="ensembl-human" type="ensembl-core">
       <property name="src.data.dir" location="/SAN_humanmine/data/ensembl/homo_sapiens/current" />
@@ -24,14 +24,19 @@
       <property name="src.data.dir" location="/SAN_humanmine/data/ensembl/homo_sapiens/current/fasta" />
     </source>
     <source name="human-gene" type="human-gene">
-      <property name="src.data.dir" location="/micklem/data/human/identifiers/current" />
+      <property name="src.data.dir" location="/data/human_identifiers" />
     </source>
     <source name="ncbi-summaries" type="ncbi-summaries" dump="true">
       <property name="src.data.dir" location="/micklem/data/metabolic/gene-summaries/current/" />
     </source>
+    <source name="pubmed-gene-direct" type="pubmed-gene-direct">
+      <property name="src.data.dir" location="/data/pubmed-gene" />
+      <property name="pubmed.organisms" value="9606" />
+      <property name="pubmed-gene-direct.includes" value="gene2pubmed" />
+    </source>
     <source name="pubmed-gene" type="pubmed-gene">
-      <property name="src.data.dir" location="/micklem/data/pubmed/current" />
-      <property name="pubmed.organisms" value="9606 10090" />
+      <property name="src.data.dir" location="/data/pubmed-gene" />
+      <property name="pubmed.organisms" value="9606" />
       <property name="src.data.dir.includes" value="gene2pubmed" />
     </source>
     <source name="mgi-identifiers" type="mgi-identifiers">
@@ -66,9 +71,9 @@
       <property name="src.data.dir" location="/micklem/data/metabolic/protein-atlas/current" />
     </source>
     <source name="uniprot" type="uniprot">
-      <property name="uniprot.organisms" value="9606 10090" />
+      <property name="uniprot.organisms" value="9606" />
       <property name="createinterpro" value="true" />
-      <property name="src.data.dir" location="/micklem/data/uniprot/current/" />
+      <property name="src.data.dir" location="/data/sp" />
       <property name="loadtrembl" value="false"/>
     </source>
     <source name="uniprot-keywords" type="uniprot-keywords">

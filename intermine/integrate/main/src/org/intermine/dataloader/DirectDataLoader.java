@@ -10,11 +10,23 @@ package org.intermine.dataloader;
  *
  */
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
+import org.intermine.metadata.ClassDescriptor;
+import org.intermine.metadata.Model;
+import org.intermine.metadata.PrimaryKey;
+import org.intermine.metadata.PrimaryKeyUtil;
 import org.intermine.metadata.Util;
 import org.intermine.model.FastPathObject;
 import org.intermine.model.InterMineObject;
 import org.intermine.objectstore.ObjectStoreException;
+import org.intermine.util.CollectionUtil;
 import org.intermine.util.DynamicUtil;
 
 /**
@@ -32,6 +44,7 @@ public class DirectDataLoader extends DataLoader
     private long stepTime;
     private String sourceName;
     private String sourceType;
+    private List<FastPathObject> buffer = new ArrayList<FastPathObject>();
 
     private static final int LOG_FREQUENCY = 100000;
     private static final int COMMIT_FREQUENCY = 500000;
@@ -42,7 +55,7 @@ public class DirectDataLoader extends DataLoader
      * @param sourceName the source name
      * @param sourceType the source type
      */
-    public DirectDataLoader (IntegrationWriter iw, String sourceName, String sourceType) {
+    public DirectDataLoader(IntegrationWriter iw, String sourceName, String sourceType) {
         super(iw);
         this.sourceName = sourceName;
         this.sourceType = sourceType;
@@ -50,37 +63,124 @@ public class DirectDataLoader extends DataLoader
         this.stepTime = startTime;
     }
 
-
     /**
      * Store an object using the IntegrationWriter.
      * @param o the InterMineObject
      * @throws ObjectStoreException if there is a problem in the IntegrationWriter
      */
     public void store(FastPathObject o) throws ObjectStoreException {
+
+        buffer.add(o);
+
+
+        if (buffer.size() == 10) {
+            storeBatch();
+        }
+    }
+
+    private void storeBatch() throws ObjectStoreException {
         Source source = getIntegrationWriter().getMainSource(sourceName, sourceType);
         Source skelSource = getIntegrationWriter().getSkeletonSource(sourceName, sourceType);
 
-        getIntegrationWriter().store(o, source, skelSource);
-        storeCount++;
-        if (storeCount % LOG_FREQUENCY == 0) {
-            long now = System.currentTimeMillis();
-            LOG.info("Dataloaded " + storeCount + " objects - running at "
-                    + ((60000L * LOG_FREQUENCY) / (now - stepTime)) + " (avg "
-                    + ((60000L * storeCount) / (now - startTime))
-                    + ") objects per minute -- now on "
-                    + Util.getFriendlyName(o.getClass()));
-            stepTime = now;
+        // first get equivalent objects for buffered objects
+        if (getIntegrationWriter() instanceof IntegrationWriterDataTrackingImpl) {
+            //checkForProxiesInPrimaryKeys(source);
+
+            HintingFetcher eof =
+                    ((IntegrationWriterDataTrackingImpl) getIntegrationWriter()).getEof();
+            if (eof instanceof BatchingFetcher) {
+                ((BatchingFetcher) eof).getEquivalentsForObjects(buffer);
+            } else {
+                LOG.warn("Not a batching fetcher, was: " + eof.getClass());
+            }
         }
-        if (storeCount % COMMIT_FREQUENCY == 0) {
-            LOG.info("Committing transaction after storing " + storeCount + " objects.");
-            getIntegrationWriter().batchCommitTransaction();
+
+        LOG.info("Storing batch of " + buffer.size() + " objects.");
+        // now store, the equivalent objects should be in cache
+        for (FastPathObject o : buffer) {
+            getIntegrationWriter().store(o, source, skelSource);
+            storeCount++;
+            if (storeCount % LOG_FREQUENCY == 0) {
+                long now = System.currentTimeMillis();
+                LOG.info("Dataloaded " + storeCount + " objects - running at "
+                        + ((60000L * LOG_FREQUENCY) / (now - stepTime)) + " (avg "
+                        + ((60000L * storeCount) / (now - startTime))
+                        + ") objects per minute -- now on "
+                        + Util.getFriendlyName(o.getClass()));
+                stepTime = now;
+            }
+            if (storeCount % COMMIT_FREQUENCY == 0) {
+                LOG.info("Committing transaction after storing " + storeCount + " objects.");
+                getIntegrationWriter().batchCommitTransaction();
+            }
         }
+        // now clear ready for next objects
+        buffer.clear();
+    }
+
+    private void checkForProxiesInPrimaryKeys(Source source) {
+        Model model = getIntegrationWriter().getModel();
+
+        // TODO we can skip a lot of this by first finding keys for the source and checking for
+        // any keys that contain a reference. Then we only need to see if we have any objects of
+        // those classes in the buffer.
+
+        // create list that contains only InterMineObjects (remove simple objects)
+        List<InterMineObject> imos = new ArrayList<InterMineObject>();
+        for (FastPathObject fpo : buffer) {
+            if (fpo instanceof InterMineObject) {
+                imos.add((InterMineObject) fpo);
+            }
+        }
+
+        // group the current objects by class
+        Map<Class<?>, List<InterMineObject>> objsByClass = CollectionUtil.groupByClass(imos,
+                false);
+        HashSet<ClassDescriptor> cldsDone = new HashSet<ClassDescriptor>();
+        for (Class<?> c : objsByClass.keySet()) {
+            Set<ClassDescriptor> classDescriptors = model.getClassDescriptorsForClass(c);
+            for (ClassDescriptor cld : classDescriptors) {
+                if (!cldsDone.contains(cld)) {
+                    cldsDone.add(cld);
+                    Set<PrimaryKey> keysForClass = DataLoaderHelper.getPrimaryKeys(cld, source,
+                            getIntegrationWriter().getObjectStore());
+
+//                    for (PrimaryKey pk : keysForClass) {
+//                        pk.
+//                    }
+                }
+            }
+        }
+        // get primary keys for this source for each class
+
+
+        // find primary keys for this source
+        Properties keys = DataLoaderHelper.getKeyProperties(source);
+        for (Map.Entry<Object, Object> entry : keys.entrySet()) {
+            String cldName = (String) entry.getKey();
+            String keyList = (String) entry.getValue();
+
+            System.out.println("class: " + cldName + "keys: " + keyList);
+        }
+
+        throw new RuntimeException("Aborting");
+        // restrict primary keys to any that include a reference to another object
+
+        // if there are a none we don't need to perform this check
+
+        // otherwise, find classes of all objects in batch
+
+        // if any where there is a reference pk, check the referenced object isn't a proxy reference
+
+
     }
 
     /**
      * Close the DirectDataLoader, this just prints a final log message with loading stats.
      */
-    public void close() {
+    public void close() throws ObjectStoreException {
+        // make sure we store any remaining objects
+        storeBatch();
         long now = System.currentTimeMillis();
         LOG.info("Finished dataloading " + storeCount + " objects at " + ((60000L * storeCount)
                 / (now - startTime)) + " objects per minute (" + (now - startTime)
