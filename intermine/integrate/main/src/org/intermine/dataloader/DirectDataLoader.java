@@ -11,21 +11,23 @@ package org.intermine.dataloader;
  */
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.intermine.metadata.ClassDescriptor;
+import org.intermine.metadata.FieldDescriptor;
 import org.intermine.metadata.Model;
 import org.intermine.metadata.PrimaryKey;
-import org.intermine.metadata.PrimaryKeyUtil;
+import org.intermine.metadata.ReferenceDescriptor;
 import org.intermine.metadata.Util;
 import org.intermine.model.FastPathObject;
 import org.intermine.model.InterMineObject;
 import org.intermine.objectstore.ObjectStoreException;
+import org.intermine.objectstore.proxy.ProxyReference;
 import org.intermine.util.CollectionUtil;
 import org.intermine.util.DynamicUtil;
 
@@ -73,7 +75,7 @@ public class DirectDataLoader extends DataLoader
         buffer.add(o);
 
 
-        if (buffer.size() == 10) {
+        if (buffer.size() == 50) {
             storeBatch();
         }
     }
@@ -84,7 +86,7 @@ public class DirectDataLoader extends DataLoader
 
         // first get equivalent objects for buffered objects
         if (getIntegrationWriter() instanceof IntegrationWriterDataTrackingImpl) {
-            //checkForProxiesInPrimaryKeys(source);
+            checkForProxiesInPrimaryKeys(source);
 
             HintingFetcher eof =
                     ((IntegrationWriterDataTrackingImpl) getIntegrationWriter()).getEof();
@@ -136,7 +138,12 @@ public class DirectDataLoader extends DataLoader
         // group the current objects by class
         Map<Class<?>, List<InterMineObject>> objsByClass = CollectionUtil.groupByClass(imos,
                 false);
+
+        System.out.println("objsByClass.keySet(): " + objsByClass.keySet());
         HashSet<ClassDescriptor> cldsDone = new HashSet<ClassDescriptor>();
+
+        Map<Class<?>, Set<String>> refsInKeys = new HashMap<Class<?>, Set<String>>();
+        // find any primary keys that include a reference
         for (Class<?> c : objsByClass.keySet()) {
             Set<ClassDescriptor> classDescriptors = model.getClassDescriptorsForClass(c);
             for (ClassDescriptor cld : classDescriptors) {
@@ -145,25 +152,69 @@ public class DirectDataLoader extends DataLoader
                     Set<PrimaryKey> keysForClass = DataLoaderHelper.getPrimaryKeys(cld, source,
                             getIntegrationWriter().getObjectStore());
 
-//                    for (PrimaryKey pk : keysForClass) {
-//                        pk.
-//                    }
+                    for (PrimaryKey pk : keysForClass) {
+                        for (String fieldName: pk.getFieldNames()) {
+                            FieldDescriptor fld = cld.getFieldDescriptorByName(fieldName);
+                            if (fld instanceof ReferenceDescriptor) {
+                                System.out.println("Key has a reference: " + pk.getName() + " "
+                                        + cld.getName() + " " + fld.getName());
+                                LOG.info("Key has a reference: " + pk.getName() + " "
+                                        + cld.getName() + " " + fld.getName());
+                                Set<String> refFieldNames = refsInKeys.get(cld.getType());
+                                if (refFieldNames == null) {
+                                    refFieldNames = new HashSet<String>();
+                                    refsInKeys.put(cld.getType(), refFieldNames);
+                                }
+                                refFieldNames.add(fld.getName());
+                            }
+                        }
+                    }
                 }
             }
         }
-        // get primary keys for this source for each class
 
+        System.out.println("refsInKeys: " + refsInKeys);
 
-        // find primary keys for this source
-        Properties keys = DataLoaderHelper.getKeyProperties(source);
-        for (Map.Entry<Object, Object> entry : keys.entrySet()) {
-            String cldName = (String) entry.getKey();
-            String keyList = (String) entry.getValue();
+        for (Class<?> keyC : refsInKeys.keySet()) {
+            for (Class<?> objC : objsByClass.keySet()) {
+                System.out.println("keyC: " + keyC + " objC " + objC
+                        + " DynamicUtil.isassignableFrom(keyC, objC): " + DynamicUtil.isAssignableFrom(keyC,  objC));
 
-            System.out.println("class: " + cldName + "keys: " + keyList);
+                if (DynamicUtil.isAssignableFrom(keyC,  objC)) {
+                    for (String fieldName : refsInKeys.get(keyC)) {
+                        // for each object being stored of this type make sure the referenced object
+                        // isn't a proxyRefernece
+                        for (InterMineObject obj : objsByClass.get(objC)) {
+                            try {
+                                InterMineObject refObj = (InterMineObject) obj.getFieldProxy(fieldName);
+                                System.out.println(DynamicUtil.getSimpleClassName(obj) + "." + fieldName
+                                        + " - " + refObj.getClass());
+                                if (refObj instanceof ProxyReference) {
+                                    throw new IllegalArgumentException("Found ProxyReference in a key field reference");
+                                }
+                            } catch (IllegalAccessException e) {
+                                System.out.println("IllegalAccessException");
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        throw new RuntimeException("Aborting");
+            // get primary keys for this source for each class
+
+
+//        // find primary keys for this source
+//        Properties keys = DataLoaderHelper.getKeyProperties(source);
+//        for (Map.Entry<Object, Object> entry : keys.entrySet()) {
+//            String cldName = (String) entry.getKey();
+//            String keyList = (String) entry.getValue();
+//
+//            System.out.println("class: " + cldName + "keys: " + keyList);
+//        }
+
+        //throw new RuntimeException("Aborting");
         // restrict primary keys to any that include a reference to another object
 
         // if there are a none we don't need to perform this check
