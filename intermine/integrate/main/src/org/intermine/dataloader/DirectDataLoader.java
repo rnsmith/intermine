@@ -175,6 +175,7 @@ public class DirectDataLoader extends DataLoader
 
         System.out.println("refsInKeys: " + refsInKeys);
 
+        // for each class in batch see if we need to check for ProxyReferences
         for (Class<?> keyC : refsInKeys.keySet()) {
             for (Class<?> objC : objsByClass.keySet()) {
                 System.out.println("keyC: " + keyC + " objC " + objC
@@ -201,29 +202,6 @@ public class DirectDataLoader extends DataLoader
                 }
             }
         }
-
-            // get primary keys for this source for each class
-
-
-//        // find primary keys for this source
-//        Properties keys = DataLoaderHelper.getKeyProperties(source);
-//        for (Map.Entry<Object, Object> entry : keys.entrySet()) {
-//            String cldName = (String) entry.getKey();
-//            String keyList = (String) entry.getValue();
-//
-//            System.out.println("class: " + cldName + "keys: " + keyList);
-//        }
-
-        //throw new RuntimeException("Aborting");
-        // restrict primary keys to any that include a reference to another object
-
-        // if there are a none we don't need to perform this check
-
-        // otherwise, find classes of all objects in batch
-
-        // if any where there is a reference pk, check the referenced object isn't a proxy reference
-
-
     }
 
     /**
