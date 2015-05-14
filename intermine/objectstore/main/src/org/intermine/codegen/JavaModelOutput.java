@@ -565,7 +565,7 @@ public class JavaModelOutput
             .append(INDENT + INDENT)
             .append("StringConstructor sb = new StringConstructor();\n")
             .append(INDENT + INDENT)
-            .append("sb.append(\"" + DELIM + cld.getName() + "\");\n");
+            .append("sb.append(\"" + DELIM + TypeUtil.unqualifiedName(cld.getName()) + "\");\n");
         for (FieldDescriptor field : cld.getAllFieldDescriptors()) {
             if (field instanceof AttributeDescriptor) {
                 AttributeDescriptor attribute = (AttributeDescriptor) field;

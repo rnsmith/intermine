@@ -658,7 +658,7 @@ public class ObjectStoreWriterInterMineImpl extends ObjectStoreInterMineImpl
                     for (int colNo = 0; colNo < tableInfo.colNames.length; colNo++) {
                         Object value = null;
                         if ("tableclass".equals(tableInfo.colNames[colNo])) {
-                            value = cld.getName();
+                            value = TypeUtil.unqualifiedName(cld.getName());
                         } else if ("class".equals(tableInfo.colNames[colNo])) {
                             if (objectClass == null) {
                                 StringBuffer sb = new StringBuffer();
@@ -669,7 +669,7 @@ public class ObjectStoreWriterInterMineImpl extends ObjectStoreInterMineImpl
                                         sb.append(" ");
                                     }
                                     needComma = true;
-                                    sb.append(objectClazz.getName());
+                                    sb.append(TypeUtil.unqualifiedName(objectClazz.getName()));
                                 }
                                 objectClass = sb.toString();
                             }

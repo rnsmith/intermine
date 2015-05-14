@@ -82,6 +82,21 @@ public final class TypeUtil
     }
 
     /**
+     * Add the given package name to a class name if it doesn't already have a package.
+     * @param className name of class to update
+     * @param packageName package name to add
+     * @return the update class name
+     */
+    public static String qualifyName(String className, String packageName) {
+        if (className.lastIndexOf(".") < 0) {
+            return packageName + "." + className;
+        } else {
+            return className;
+        }
+    }
+
+
+    /**
      * Returns the value of a public or protected Field of an Object given the field name
      *
      * @param o the Object

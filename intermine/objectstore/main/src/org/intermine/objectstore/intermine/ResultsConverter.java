@@ -30,6 +30,7 @@ import org.intermine.metadata.CollectionDescriptor;
 import org.intermine.metadata.ConstraintOp;
 import org.intermine.metadata.FieldDescriptor;
 import org.intermine.metadata.ReferenceDescriptor;
+import org.intermine.metadata.TypeUtil;
 import org.intermine.model.FastPathObject;
 import org.intermine.model.InterMineObject;
 import org.intermine.objectstore.ObjectStoreException;
@@ -172,7 +173,9 @@ public final class ResultsConverter
                                 try {
                                     String[] b = ((String) currentColumn).split(" ");
                                     for (int i = 0; i < b.length; i++) {
-                                        classes.add(Class.forName(b[i]));
+                                        String clsName = TypeUtil.qualifyName(b[i],
+                                                os.getModel().getPackageName());
+                                        classes.add(Class.forName(clsName));
                                     }
                                 } catch (ClassNotFoundException e) {
                                     SQLException e2
@@ -290,7 +293,8 @@ public final class ResultsConverter
                 try {
                     String[] b = objectClass.split(" ");
                     for (int i = 0; i < b.length; i++) {
-                        classes.add(Class.forName(b[i]));
+                        String clsName = TypeUtil.qualifyName(b[i], os.getModel().getPackageName());
+                        classes.add(Class.forName(clsName));
                     }
                 } catch (ClassNotFoundException e) {
                     SQLException e2 = new SQLException("Invalid entry in objectclass column");

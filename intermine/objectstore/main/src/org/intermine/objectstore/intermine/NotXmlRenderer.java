@@ -50,7 +50,7 @@ public final class NotXmlRenderer
                     sb.append(" ");
                 }
                 needComma = true;
-                sb.append(clazz.getName());
+                sb.append(TypeUtil.unqualifiedName(clazz.getName()));
             }
 
             Map<String, FieldInfo> infos = TypeUtil.getFieldInfos(obj.getClass());

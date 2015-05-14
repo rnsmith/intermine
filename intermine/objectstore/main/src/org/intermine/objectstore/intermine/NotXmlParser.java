@@ -86,6 +86,7 @@ public final class NotXmlParser
         splitTime += time2 - time1;
 
         InterMineObject retval;
+        String pkgName = os.getModel().getPackageName();
 
         Class<? extends FastPathObject> clazz = classCache.get(a[1]);
         if (clazz == null) {
@@ -93,7 +94,8 @@ public final class NotXmlParser
             if (!"".equals(a[1])) {
                 String[] b = SPACE_SPLITTER.split(a[1]);
                 for (int i = 0; i < b.length; i++) {
-                    classes.add(Class.forName(b[i]));
+                    String clsName = TypeUtil.qualifyName(b[i], pkgName);
+                    classes.add(Class.forName(clsName));
                 }
             }
             time1 = System.currentTimeMillis();
