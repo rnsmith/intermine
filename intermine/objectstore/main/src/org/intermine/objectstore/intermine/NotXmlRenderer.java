@@ -50,7 +50,12 @@ public final class NotXmlRenderer
                     sb.append(" ");
                 }
                 needComma = true;
-                sb.append(TypeUtil.unqualifiedName(clazz.getName()));
+                // only strip the package name from classes in the model
+                if (Cloneable.class.equals(clazz)) {
+                    sb.append(clazz.getName());
+                } else {
+                    sb.append(TypeUtil.unqualifiedName(clazz.getName()));
+                }
             }
 
             Map<String, FieldInfo> infos = TypeUtil.getFieldInfos(obj.getClass());
