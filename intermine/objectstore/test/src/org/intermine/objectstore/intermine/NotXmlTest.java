@@ -17,7 +17,6 @@ import junit.framework.TestCase;
 import org.intermine.model.testmodel.Company;
 import org.intermine.model.testmodel.Department;
 import org.intermine.model.testmodel.Employee;
-import org.intermine.objectstore.ObjectStore;
 import org.intermine.objectstore.ObjectStoreFactory;
 import org.intermine.objectstore.proxy.ProxyReference;
 import org.intermine.util.DynamicBean;
@@ -38,7 +37,7 @@ public class NotXmlTest extends TestCase
         d.setId(new Integer(5678));
         e.setDepartment(d);
 
-        String expected = NotXmlParser.DELIM + "org.intermine.model.testmodel.Employee"
+        String expected = NotXmlParser.DELIM + "Employee"
             + NotXmlParser.DELIM + "aage" + NotXmlParser.DELIM + "0"
             + NotXmlParser.DELIM + "rdepartment" + NotXmlParser.DELIM + "5678"
             + NotXmlParser.DELIM + "afullTime" + NotXmlParser.DELIM + "false"
@@ -50,7 +49,7 @@ public class NotXmlTest extends TestCase
     }
 
     public void testParse1() throws Exception {
-        String s = NotXmlParser.DELIM + "org.intermine.model.testmodel.Employee"
+        String s = NotXmlParser.DELIM + "Employee"
             + NotXmlParser.DELIM + "aid" + NotXmlParser.DELIM + "1234"
             + NotXmlParser.DELIM + "aname" + NotXmlParser.DELIM + "Employee1"
             + NotXmlParser.DELIM + "rdepartment" + NotXmlParser.DELIM + "5678";
@@ -69,7 +68,7 @@ public class NotXmlTest extends TestCase
 
     public void testParseDynamic() throws Exception {
 
-        String s = NotXmlParser.DELIM + "org.intermine.model.testmodel.Company net.sf.cglib.proxy.Factory"
+        String s = NotXmlParser.DELIM + "Company net.sf.cglib.proxy.Factory"
             + NotXmlParser.DELIM + "raddress" + NotXmlParser.DELIM + "74328"
             + NotXmlParser.DELIM + "avatNumber" + NotXmlParser.DELIM + "100"
             + NotXmlParser.DELIM + "aname" + NotXmlParser.DELIM + "CompanyC"

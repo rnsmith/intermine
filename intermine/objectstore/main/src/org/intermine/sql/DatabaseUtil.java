@@ -736,6 +736,13 @@ public final class DatabaseUtil
         } else if (o instanceof Boolean) {
             return ((Boolean) o).booleanValue() ? "'true'" : "'false'";
         } else if (o instanceof Class<?>) {
+            Class<?> cls = (Class<?>) o;
+            // TODO this probably needs a schema version check
+            if (Cloneable.class.equals(cls)) {
+                return cls.getName();
+            } else {
+                TypeUtil.unqualifiedName(cls.getName());
+            }
             return objectToString(((Class<?>) o).getName());
         } else if (o == null) {
             return "NULL";
